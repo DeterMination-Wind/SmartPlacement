@@ -1,0 +1,143 @@
+plugins{
+    id "java"
+}
+
+group = "smartplacement"
+version = "1.0.0"
+
+def modName = "SmartPlacement"
+
+java{
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+def workspaceRoot = rootDir.parentFile
+def mindustryClasses = new File(workspaceRoot, "Mindustry-master/core/build/classes/java/main")
+def arcClasses = new File(workspaceRoot, "Arc/arc-core/build/classes/java/main")
+def androidJar = new File(workspaceRoot, "Arc/backends/backend-android/libs/android.jar")
+
+dependencies{
+    compileOnly files(mindustryClasses, arcClasses)
+    testCompileOnly files(mindustryClasses, arcClasses)
+}
+
+tasks.withType(JavaCompile).configureEach{
+    options.encoding = "UTF-8"
+    if(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_1_9)){
+        options.release.set(8)
+    }
+}
+
+def isWindows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")
+def d8Output = layout.buildDirectory.dir("d8")
+def distDir = new File(rootDir, "dist")
+def stagedReleaseDir = new File(workspaceRoot, "构建/${modName}")
+
+def findD8 = {
+    def explicit = System.getenv("D8_PATH")
+    if(explicit && new File(explicit).exists()) return new File(explicit)
+
+    def sdkRoot = System.getenv("ANDROID_SDK_ROOT") ?: System.getenv("ANDROID_HOME")
+    if(sdkRoot){
+        def buildTools = new File(sdkRoot, "build-tools")
+        def candidates = (buildTools.listFiles() ?: [])
+            .findAll{ it.isDirectory() }
+            .sort{ a, b -> b.name <=> a.name }
+        for(def candidate : candidates){
+            def executable = new File(candidate, isWindows ? "d8.bat" : "d8")
+            if(executable.exists()) return executable
+        }
+    }
+
+    def commandLineTools = (workspaceRoot.listFiles() ?: [])
+        .findAll{ it.isDirectory() && it.name.startsWith("commandlinetools-win-") }
+        .sort{ a, b -> b.name <=> a.name }
+    for(def toolsDir : commandLineTools){
+        def executable = new File(toolsDir, "cmdline-tools/bin/d8.bat")
+        if(executable.exists()) return executable
+    }
+    return null
+}
+
+tasks.register("d8InputJar", Jar){
+    dependsOn tasks.named("classes")
+    archiveFileName = "${modName}-d8-input.jar"
+    destinationDirectory = layout.buildDirectory.dir("d8-input")
+    from(sourceSets.main.output)
+}
+
+tasks.register("dexAndroid", Exec){
+    dependsOn tasks.named("d8InputJar")
+
+    doFirst{
+        def d8 = findD8()
+        if(d8 == null) throw new GradleException("D8 was not found.")
+
+        delete(d8Output)
+        d8Output.get().asFile.mkdirs()
+        commandLine d8.absolutePath
+        args "--min-api", "14", "--release", "--output", d8Output.get().asFile.absolutePath
+        args "--classpath", mindustryClasses.absolutePath
+        args "--classpath", arcClasses.absolutePath
+        args "--classpath", androidJar.absolutePath
+        args tasks.named("d8InputJar").get().archiveFile.get().asFile.absolutePath
+    }
+}
+
+tasks.register("deploy", Jar){
+    dependsOn tasks.named("classes"), tasks.named("dexAndroid")
+    archiveFileName = "${modName}.jar"
+    destinationDirectory = distDir
+    from(sourceSets.main.output)
+    from(d8Output){
+        include "classes.dex"
+    }
+    from(rootDir){
+        include "mod.json"
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.register("releaseZip", Zip){
+    dependsOn tasks.named("deploy")
+    archiveFileName = "${modName}.zip"
+    destinationDirectory = distDir
+    from(tasks.named("deploy").flatMap{ it.archiveFile })
+    from(rootDir){
+        include "README.md", "README_zh.md"
+    }
+}
+
+tasks.register("stageRelease", Copy){
+    dependsOn tasks.named("deploy"), tasks.named("releaseZip")
+    into stagedReleaseDir
+    from(tasks.named("deploy").flatMap{ it.archiveFile }){
+        rename{ "${modName}-v${project.version}.jar" }
+    }
+    from(tasks.named("releaseZip").flatMap{ it.archiveFile }){
+        rename{ "${modName}-v${project.version}.zip" }
+    }
+}
+
+tasks.register("verifyRules", JavaExec){
+    dependsOn tasks.named("testClasses")
+    classpath = sourceSets.test.runtimeClasspath + files(mindustryClasses, arcClasses)
+    mainClass = "smartplacement.SmartPlacementRulesTest"
+}
+
+tasks.named("test"){
+    enabled = false
+}
+
+tasks.named("check"){
+    dependsOn tasks.named("verifyRules")
+}
+
+tasks.named("build"){
+    dependsOn tasks.named("stageRelease")
+}
+
+tasks.named("clean"){
+    delete distDir, stagedReleaseDir
+}
