@@ -39,3 +39,7 @@ Mindustry 157 or newer is required. The mod works with vanilla Mindustry and Min
 ~~~powershell
 .\gradlew.bat clean build
 ~~~
+
+## Documentation / 文档
+
+Developer docs (architecture, development, release, testing, glossary) live in [docs/README.md](docs/README.md)（架构、开发、发布、测试、术语表）。
