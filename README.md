@@ -1,5 +1,7 @@
 # Smart Placement
 
+> [NOTE] 若有反馈，请发送反馈到bugsoc@qq.com / If you have any feedback, please send it to bugsoc@qq.com
+
 > Make crossed item lines behave as expected, with less trial and error.
 
 Smart Placement is a small Mindustry client-side helper for mixed-tech maps. When two item lines cross, it chooses the appropriate unconfigured crossing solution instead of leaving you to repair an accidental junction or bridge.
