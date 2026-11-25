@@ -28,7 +28,7 @@ docs/
 
 - [README.md](../README.md) / [README_zh.md](../README_zh.md)：项目主页（英文+中文）。
 - [AGENTS.md](../AGENTS.md)：仓库维护约束（构建命令、代码约束、Neon 聚合关系）。
-- [release_notes_v1.0.0.md](../release_notes_v1.0.0.md)：已发布版本说明。
+- [release_notes_v1.1.0.md](../release_notes_v1.1.0.md) / [release_notes_v1.0.0.md](../release_notes_v1.0.0.md)：版本说明。
 
 ## 维护约定
 

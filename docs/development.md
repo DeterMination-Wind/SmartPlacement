@@ -26,9 +26,11 @@
 
 - 单文件、`final` 类、Arc 风格大括号换行；判定逻辑写成 static 纯函数以便离线测试。
 - 运行时不得引入 Mindustry/Arc 之外的依赖（构建里也只有 `compileOnly` 类路径）。
-- 模组无用户可见文本，不涉及 bundle。
+- 设置项统一用 `Core.settings.getBool(key, def)` 读、`SettingsTable.checkPref(key, def)` 写；文案键 `setting.<key>.name` / `.description` 落在 `src/main/resources/bundles/bundle.properties` 与 `bundle_zh_CN.properties`（中英同步）。
+- `bekBundled` / `bekBuildSettings` 契约由本仓库自己维护（Neon `submods.json` 里 `injectBekHooks: false`），不要依赖同步脚本注入。
 
 ## 调试建议
 
-- 在地图规则界面把行星设为 `sun`（显示"任意"）即可在本地复现替换行为；换成具体行星应完全原版。
+- 在地图规则界面把行星设为 `sun`（显示"任意"）即可在本地复现替换行为；换成具体行星应完全原版（或关掉 `smartplacement-mixed-only`）。
 - proxy 只在画线期间顶替 `input.block`；若放置 UI 出现替身或图标异常，优先检查 `updatePlacementBlock()` 的换回分支。
+- 只在 Neon 里失效、独立安装正常时，先确认 `Vars.content.blocks()` 在 `init()` 是否为空——Neon 在内容加载前调用子模组 `init()`，代理表必须靠 `ensureProxies()` 惰性补建。
