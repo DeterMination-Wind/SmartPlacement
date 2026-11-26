@@ -30,6 +30,7 @@
 ## 代码约束
 
 - 判定逻辑（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns`）保持 static 纯函数，改动必须同步补 `SmartPlacementRulesTest` 断言。
+- 管道线必须走 `handleDuctBridgePass()`：原版 `Duct.handlePlacementLine` 的 `hasJunction=false` 会让架桥 DP 吞掉交叉格上的分类器计划，退化成管道桥。不要改回直接 `source.handlePlacementLine(plans)` 了事。
 - 无歧义场景（平行线、线端点、单科技、非运输线）必须返回原版回退，不允许扩大替换范围。
 - `PlacementProxy` 必须保持 `content.remove()` 排除与画线结束后还原 `input.block`，不得让替身外露到放置 UI。
 - **代理表必须惰性构建**（`ensureProxies()`：内容为空就下次再试）。Neon 在内容加载前调用子模组 `init()`，一次性建表会在聚合版里静默失效——这是 v1.0.0 聚合版失效的根因，不要改回去。

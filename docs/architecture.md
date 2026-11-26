@@ -18,7 +18,9 @@
 - **getReplacement()**：先把 `req.block` 临时还原为源方块调 `source.getReplacement()` 拿原版回退（junction/bridge）；若替换启用、画线在本格前后都有计划格、且本格已有建筑，则交 `crossingReplacement()` 判定。
 - **crossingReplacement()**（static、可测）：仅当 双科技启用 && 前后都有计划格 && 既有方块朝向与画线方向垂直（`Mathf.mod(existingRotation - planRotation, 2) == 1`）&& 双方都是物品运输线方块 && 对应 2×2 开关开着时，返回 `Blocks.invertedSorter`（空配置反向分类器）；否则返回原版回退。
 - **kindOf()**（static、可测）：把方块归到 `LineKind.conveyor`（`Conveyor` / `StackConveyor`）或 `LineKind.duct`（`Duct`，含装甲管道）；非物品线返回 `null`。
-- **applyWideDuctBridge()**（`PlacementProxy.handlePlacementLine`）：先委托源方块跑原版架桥，再处理"宽阻挡带"——管道线连续压到 3 格及以上的垂直交叉格时，把整段阻挡跳过，用 `Blocks.ductBridge` 连两端并移除中间计划格；跨距超过桥的 `range` 时保持原样（不硬架桥）。`wideBlockedRuns()` 是这段判定的纯函数部分，供离线回归。
+- **handleDuctBridgePass()**：原版 `Placement.smartCalculateBridges` 的 `placeable` 是 `(可放置 || 同方块) && !(既有方块垂直且属于 avoid)`，交叉格必然落在第二段的否定里 → 计划被打上“不可放置”。此时 `Duct.handlePlacementLine` 传 `hasJunction=false`（原版 `Duct.init()` 里 junction 赋值被注释掉了），DP 会跳过该计划并架桥盖过去；传送带因为 `junctionReplacement` 非空、`hasJunction=true`，计划被当 junction 保留。所以新线是管道时交叉会退化成管道桥。修法：本批次真的含交叉替换计划时，按传送带的形态调用 `Placement.calculateBridges(plans, ductBridge, true, avoid)`。
+- **restoreCrossings()**：架桥会重建计划表，可能把交叉格还原成普通线方块；这里对存活的计划再判一次交叉（桥接计划是桥方块，`kindOf` 为 null，不会被误改）。
+- **applyWideDuctBridge()**（`PlacementProxy.handlePlacementLine`）：最后处理“宽阻挡带”——管道线连续压到 3 格及以上的垂直交叉格时，把整段阻挡跳过，用 `Blocks.ductBridge` 连两端并移除中间计划格；跨距超过桥的 `range` 时保持原样（不硬架桥）。`wideBlockedRuns()` 是这段判定的纯函数部分，供离线回归。
 
 ## 设置项
 
