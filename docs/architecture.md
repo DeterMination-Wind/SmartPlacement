@@ -20,7 +20,11 @@
 - **kindOf()**（static、可测）：把方块归到 `LineKind.conveyor`（`Conveyor` / `StackConveyor`）或 `LineKind.duct`（`Duct`，含装甲管道）；非物品线返回 `null`。
 - **handleDuctBridgePass()**：原版 `Placement.smartCalculateBridges` 的 `placeable` 是 `(可放置 || 同方块) && !(既有方块垂直且属于 avoid)`，交叉格必然落在第二段的否定里 → 计划被打上“不可放置”。此时 `Duct.handlePlacementLine` 传 `hasJunction=false`（原版 `Duct.init()` 里 junction 赋值被注释掉了），DP 会跳过该计划并架桥盖过去；传送带因为 `junctionReplacement` 非空、`hasJunction=true`，计划被当 junction 保留。所以新线是管道时交叉会退化成管道桥。修法：本批次真的含交叉替换计划时，按传送带的形态调用 `Placement.calculateBridges(plans, ductBridge, true, avoid)`。
 - **restoreCrossings()**：架桥会重建计划表，可能把交叉格还原成普通线方块；这里对存活的计划再判一次交叉（桥接计划是桥方块，`kindOf` 为 null，不会被误改）。
-- **applyWideDuctBridge()**（`PlacementProxy.handlePlacementLine`）：最后处理“宽阻挡带”——管道线连续压到 3 格及以上的垂直交叉格时，把整段阻挡跳过，用 `Blocks.ductBridge` 连两端并移除中间计划格；跨距超过桥的 `range` 时保持原样（不硬架桥）。`wideBlockedRuns()` 是这段判定的纯函数部分，供离线回归。
+- **applyCrossingBridges()**（`PlacementProxy.handlePlacementLine`）：最后统一处理交叉带架桥，两个来源共用同一段计划：
+  - 旧的宽管道规则：管道线连续压到 3 格及以上的垂直交叉格时整段跳过；
+  - 新的分类器上限规则：反向分类器的 `Sorter.getTileTarget` 会拒绝 3 连（`isSame(source) && isSame(nearby(dir))`），因此传送带×管道交叉若会在**被跨线轴向**形成第 3 个连续分类器，或**新线轴向**已有 3 个连续交叉格，就把新线整段连续交叉带改用本科技的桥（`Conveyor.bridgeReplacement` → 传送带桥，`Duct.bridgeReplacement` → 物品管道桥）。
+  - 桥只放在**新画的线**上，已有的旧线和前两个反向分类器保持不动；连续交叉带紧挨着时桥端点不能落在交叉格，所以整段一起架桥。跨距超过桥的 `range` 或端点不可放置时保持原样。
+  - `wideBlockedRuns()` / `sorterRunLength()` / `shouldBridgeCrossingRun()` 是这段判定的纯函数部分，供离线回归。
 
 ## 设置项
 
@@ -31,6 +35,7 @@
 | `smartplacement-cross-dc` | 开 | 管道类 × 传送带类 |
 | `smartplacement-cross-dd` | 开 | 管道类 × 管道类 |
 | `smartplacement-duct-bridge-wide` | 开 | 管道交叉阻挡带超过 2 格时改放物品管道桥 |
+| `smartplacement-sorter-limit-bridge` | 开 | 会形成第 3 个连续反向分类器时，新线改用本科技的桥跨过交叉带 |
 | `smartplacement-mixed-only` | 开 | 只在行星为“任意”（混合科技）时生效 |
 
 - 文案键是 `setting.<键>.name` / `setting.<键>.description`，见 `src/main/resources/bundles/`。
@@ -60,5 +65,5 @@ build.gradle                                             任务链：d8InputJar 
 
 - 纯客户端，不新增可放置方块；proxy 必须留在内容表之外、不画线时必须还原 `input.block`。
 - 无歧义场景（平行线、线端点、单科技地图、非运输线交叉）必须原样走原版回退，不干扰普通建造。
-- 判定逻辑保持 static 纯函数（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns`），供离线回归测试。
+- 判定逻辑保持 static 纯函数（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns` / `sorterRunLength` / `shouldBridgeCrossingRun`），供离线回归测试。
 - 代理表构建必须容忍"内容尚未加载"（返回后下次再试），不能在 `init()` 里一次性建完就放弃。

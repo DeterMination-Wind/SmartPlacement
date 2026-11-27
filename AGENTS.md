@@ -10,7 +10,7 @@
 
 ## 文件结构
 
-- `src/main/java/smartplacement/`：入口 `SmartPlacementMod`（`init()` + Trigger.update 交换 proxy + 惰性代理表 + 设置）、内部类 `PlacementProxy`、纯函数判定（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns`）。
+- `src/main/java/smartplacement/`：入口 `SmartPlacementMod`（`init()` + Trigger.update 交换 proxy + 惰性代理表 + 设置）、内部类 `PlacementProxy`、纯函数判定（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns` / `sorterRunLength` / `shouldBridgeCrossingRun`）。
 - `src/main/resources/bundles/bundle.properties`、`bundle_zh_CN.properties`：设置项文案（`setting.<key>.name` / `.description`），同步进 Neon 合并 bundle。
 - `src/test/java/smartplacement/`：`SmartPlacementRulesTest`（main() 断言）。
 - `build.gradle`：任务链与产物复制；`mod.json`：描述文件（`main`、`minGameVersion 157`、`hidden`）。
@@ -29,7 +29,8 @@
 
 ## 代码约束
 
-- 判定逻辑（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns`）保持 static 纯函数，改动必须同步补 `SmartPlacementRulesTest` 断言。
+- 判定逻辑（`crossingReplacement` / `replacementEnabled` / `kindOf` / `wideBlockedRuns` / `sorterRunLength` / `shouldBridgeCrossingRun`）保持 static 纯函数，改动必须同步补 `SmartPlacementRulesTest` 断言。
+- 反向分类器禁止 3 连（原版 `Sorter.getTileTarget` 的 `isSame(source) && isSame(nearby(dir))` 会断流）。传送带×管道交叉会形成第 3 个连续分类器时，桥必须放在新线上并保留旧线与前两个分类器；桥类型取新线科技的 `bridgeReplacement`。
 - 管道线必须走 `handleDuctBridgePass()`：原版 `Duct.handlePlacementLine` 的 `hasJunction=false` 会让架桥 DP 吞掉交叉格上的分类器计划，退化成管道桥。不要改回直接 `source.handlePlacementLine(plans)` 了事。
 - 无歧义场景（平行线、线端点、单科技、非运输线）必须返回原版回退，不允许扩大替换范围。
 - `PlacementProxy` 必须保持 `content.remove()` 排除与画线结束后还原 `input.block`，不得让替身外露到放置 UI。

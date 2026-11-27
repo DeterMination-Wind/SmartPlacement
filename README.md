@@ -1,5 +1,8 @@
 # Smart Placement
 
+> [!NOTE]
+> 若有反馈，请发送反馈到 bugsoc@qq.com / If you have any feedback, please send it to bugsoc@qq.com
+
 > Make crossed item lines behave as expected, with less trial and error.
 
 Smart Placement is a small Mindustry client-side helper for mixed-tech maps. When two item lines cross, it chooses the appropriate unconfigured crossing solution instead of leaving you to repair an accidental junction or bridge.
@@ -10,7 +13,8 @@ It is useful on maps where multiple technology sets share one construction space
 
 - Crossing two lines places an unconfigured inverted sorter, so both lines keep running instead of overwriting each other.
 - Works for conveyor-type lines (conveyor, titanium conveyor, plastanium conveyor, armored conveyor) and duct-type lines (duct, armored duct), including mixed pairs.
-- When a duct line runs into a band of 3 or more crossing item lines, it jumps over the whole band with an item duct bridge; 1–2 tiles still get a sorter.
+- When a duct line runs into a band of 3 or more crossing item lines, it jumps over the whole band with an item duct bridge; 1–2 tiles still get a sorter unless the sorter-limit rule below applies.
+- Inverted sorters only chain two deep. If a conveyor × duct crossing would add a third consecutive sorter, the new line jumps the whole band with a bridge of its own technology family (conveyor bridge for a conveyor line, duct bridge for a duct line), so the two existing sorters keep working.
 - Parallel lines, line endpoints, non-item obstacles and single-tech planets keep vanilla behavior.
 
 ## Settings
@@ -22,6 +26,7 @@ It is useful on maps where multiple technology sets share one construction space
 | Duct × conveyor | on | Sorter crossing for duct-type over conveyor-type |
 | Duct × duct | on | Sorter crossing for duct-type over duct-type |
 | Duct bridge over wide crossings | on | Bands wider than 2 tiles are bridged instead of overwritten |
+| Bridge instead of a third sorter | on | Keep two existing sorters and bridge the new line over the band |
 | Only on mixed-tech planets | on | Act only when the map planet is "Any" |
 
 ## Installation
@@ -50,7 +55,8 @@ Mindustry 157 or newer is required. The mod works with vanilla Mindustry and Min
 
 - 两条线路交叉时改放未配置反向分类器，两条线都继续工作，而不是互相覆盖。
 - 覆盖传送带类（传送带、钛传送带、塑钢传送带、装甲传送带）与管道类（物品管道、装甲管道），混合交叉也算。
-- 管道线撞上 3 格及以上的并排交叉阻挡带时，用物品管道桥整段跳过；1~2 格仍放分类器。
+- 管道线撞上 3 格及以上的并排交叉阻挡带时，用物品管道桥整段跳过；1~2 格默认仍放分类器，除非会触发下面的三连上限。
+- 反向分类器最多只能连续串两个。传送带与管道交叉会形成第 3 个连续分类器时，保留已有两个，新线改用本科技体系的桥跨过整段（传送带线用传送带桥，管道线用物品管道桥）。
 - 平行线、线路端点、非物品障碍、单科技星球保持原版行为。
 
 ## 设置
@@ -62,6 +68,7 @@ Mindustry 157 or newer is required. The mod works with vanilla Mindustry and Min
 | 管道 交 传送带 | 开 | 管道类横穿传送带类 |
 | 管道 交 管道 | 开 | 管道类横穿管道类 |
 | 宽阻挡带改用管道桥 | 开 | 阻挡带超过 2 格时用物品管道桥跳过 |
+| 三连反向分类器改用桥 | 开 | 保留已有两个分类器，新线用本科技的桥跨过交叉带 |
 | 只在任意星球生效 | 开 | 仅行星规则为“任意”（混合科技）时介入 |
 
 ## 安装

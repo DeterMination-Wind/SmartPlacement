@@ -92,7 +92,33 @@ public final class SmartPlacementRulesTest{
             "2-wide band stays on sorters");
         requireTrue(SmartPlacementMod.wideBlockedRuns(new boolean[0], 2).isEmpty(), "empty line");
 
-        System.out.println("Smart Placement crossing, settings and wide-band rules passed.");
+        // Inverted sorters may only chain two in a row.
+        requireInt(2, SmartPlacementMod.sorterRunLength(new boolean[]{false, true, true, false, false}, 2),
+            "two-sorter chain");
+        requireInt(3, SmartPlacementMod.sorterRunLength(new boolean[]{false, true, true, true, false}, 3),
+            "three-sorter chain");
+        requireInt(3, SmartPlacementMod.sorterRunLength(new boolean[]{true, true, true, false, false}, 2),
+            "two existing sorters before the new crossing");
+        requireInt(1, SmartPlacementMod.sorterRunLength(new boolean[]{false, false, true, false, false}, 2),
+            "single sorter");
+        requireInt(0, SmartPlacementMod.sorterRunLength(new boolean[]{false, true, false}, 0), "empty slot");
+
+        // Crossing runs are bridged only when they would complete a third sorter or already span
+        // three consecutive crossings; same-family runs keep the old behavior.
+        requireTrue(SmartPlacementMod.shouldBridgeCrossingRun(false, true, 1, 2, true),
+            "third sorter on the crossed line");
+        requireFalse(SmartPlacementMod.shouldBridgeCrossingRun(false, true, 1, 2, false),
+            "two sorters on the crossed line");
+        requireTrue(SmartPlacementMod.shouldBridgeCrossingRun(false, true, 3, 2, false),
+            "three crossings on the new line");
+        requireFalse(SmartPlacementMod.shouldBridgeCrossingRun(false, false, 3, 2, false),
+            "same-family three crossings stay vanilla");
+        requireTrue(SmartPlacementMod.shouldBridgeCrossingRun(true, false, 3, 2, false),
+            "legacy wide-duct rule still bridges");
+        requireFalse(SmartPlacementMod.shouldBridgeCrossingRun(false, true, 2, 2, false),
+            "two-wide band stays on sorters");
+
+        System.out.println("Smart Placement crossing, settings, wide-band and sorter-limit rules passed.");
     }
 
     private static Block crossing(Block selected, Block existing, SmartPlacementMod.CrossingOptions options, Block fallback){
@@ -129,6 +155,12 @@ public final class SmartPlacementRulesTest{
                 throw new AssertionError("Failed rule: " + caseName + "; expected run " + wantStart + ".." + wantEnd
                     + ", got " + run[0] + ".." + run[1]);
             }
+        }
+    }
+
+    private static void requireInt(int expected, int actual, String caseName){
+        if(expected != actual){
+            throw new AssertionError("Failed rule: " + caseName + "; expected " + expected + ", got " + actual);
         }
     }
 
